@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CTF Helper Tool</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 0 20px;
+    background: #f9f9f9;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    color: #222;
+  }
+  label {
+    display: block;
+    margin-top: 20px;
+    font-weight: bold;
+  }
+  textarea, input[type=text], select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  button {
+    margin-top: 20px;
+    background-color: #007bff;
+    border: none;
+    padding: 12px 20px;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+  #output {
+    margin-top: 30px;
+    padding: 15px;
+    background: #e9ecef;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<h1>CTF Helper Tool</h1>
+
+<label for="operation">Select Operation:</label>
+<select id="operation">
+  <option value="base64encode">Base64 Encode</option>
+  <option value="base64decode">Base64 Decode</option>
+  <option value="urlencode">URL Encode</option>
+  <option value="urldecode">URL Decode</option>
+  <option value="hexToAscii">Hex to ASCII</option>
+  <option value="asciiToHex">ASCII to Hex</option>
+  <option value="rot">ROT-n Encode/Decode</option>
+  <option value="xor">XOR Decrypt</option>
+  <option value="hash">Hash String</option>
+  <option value="modInverse">Modular Inverse</option>
+</select>
+
+<label for="inputText">Input Text / Hex:</label>
+<textarea id="inputText" rows="5" placeholder="Enter your input here..."></textarea>
+
+<button onclick="runOperation()">Run</button>
+
+<h3>Output:</h3>
+<div id="output"></div>
+
+<script>
+function runOperation() {
+  const op = document.getElementById('operation').value;
+  const input = document.getElementById('inputText').value;
+  let output = '';
+
+  try {
+    if (op === 'base64encode') {
+      output = btoa(input);
+    } else if (op === 'base64decode') {
+      output = atob(input);
+    } else if (op === 'urlencode') {
+      output = encodeURIComponent(input);
+    } else if (op === 'urldecode') {
+      output = decodeURIComponent(input);
+    } else if (op === 'hexToAscii') {
+      output = input.match(/.{1,2}/g).map(h => String.fromCharCode(parseInt(h, 16))).join('');
+    } else if (op === 'asciiToHex') {
+      output = [...input].map(c => c.charCodeAt(0).toString(16)).join('');
+    } else if (op === 'rot') {
+      const n = 13; // default ROT-n
+      output = input.replace(/[a-zA-Z]/g, c => {
+        const base = c <= 'Z' ? 65 : 97;
+        return String.fromCharCode((c.charCodeAt(0) - base + n) % 26 + base);
+      });
+    } else if (op === 'xor') {
+      const key = 42; // default key
+      output = input.match(/.{1,2}/g).map(h => String.fromCharCode(parseInt(h, 16) ^ key)).join('');
+    } else if (op === 'hash') {
+      const algo = 'SHA-256';
+      const encoder = new TextEncoder();
+      window.crypto.subtle.digest(algo.replace('-', ''), encoder.encode(input)).then(hashBuffer => {
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        output = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        document.getElementById('output').textContent = output;
+      });
+      return;
+    } else if (op === 'modInverse') {
+      const a = 3;
+      const m = 11;
+      const [g, x] = egcd(a, m);
+      if (g !== 1) output = 'No modular inverse exists';
+      else output = ((x % m) + m) % m;
+    }
+  } catch (e) {
+    output = 'Error: ' + e.message;
+  }
+
+  document.getElementById('output').textContent = output;
+}
+
+function egcd(a, b) {
+  if (a === 0) return [b, 0, 1];
+  const [g, y, x] = egcd(b % a, a);
+  return [g, x - Math.floor(b / a) * y, y];
+}
+</script>
+
+</body>
+</html>
